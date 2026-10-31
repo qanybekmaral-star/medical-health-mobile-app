@@ -1,140 +1,150 @@
-
 import React from 'react';
 import {
   View,
   Text,
+  TouchableOpacity,
   StyleSheet,
-  Pressable,
-  StatusBar,
-  useWindowDimensions,
+  SafeAreaView,
 } from 'react-native';
-
-import SkinFirtsLogo from './SkinFirtsLogo';
 
 type Props = {
   onLogin: () => void;
   onSignUp: () => void;
+  onBack: () => void;
 };
 
 export default function WelcomeScreen({
   onLogin,
   onSignUp,
+  onBack,
 }: Props) {
-  const { height } = useWindowDimensions();
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-
+    <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <SkinFirtsLogo
-          crossColor="#2860F5"
-          leafColor="#FFFFFF"
-          textColor="#2860F5"
-          size={120}
-        />
 
-        <Text style={styles.description}>
-          Lorem ipsum dolor sit amet, consectetur
-          adipiscing elit, sed do eiusmod tempor
-          incididunt ut labore et dolore magna aliqua.
-        </Text>
-
-        <View
-          style={[
-            styles.buttons,
-            { marginTop: height * 0.025 },
-          ]}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={onBack}
         >
-          <Pressable
-            style={({ pressed }) => [
-              styles.loginButton,
-              pressed && styles.pressed,
-            ]}
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+
+        <View style={styles.logoContainer}>
+          <Text style={styles.logo}>SkinFirst</Text>
+        </View>
+
+        <View style={styles.welcomeContainer}>
+          <Text style={styles.title}>Welcome!</Text>
+
+          <Text style={styles.description}>
+            Your skin care journey starts here.
+            Take care of your skin with us.
+          </Text>
+        </View>
+
+        <View style={styles.buttons}>
+          <TouchableOpacity
+            style={styles.loginButton}
             onPress={onLogin}
           >
-            <Text style={styles.loginText}>
-              Log In
-            </Text>
-          </Pressable>
+            <Text style={styles.loginText}>Log In</Text>
+          </TouchableOpacity>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.signUpButton,
-              pressed && styles.pressed,
-            ]}
+          <TouchableOpacity
+            style={styles.signupButton}
             onPress={onSignUp}
           >
-            <Text style={styles.signUpText}>
-              Sign Up
-            </Text>
-          </Pressable>
+            <Text style={styles.signupText}>Sign Up</Text>
+          </TouchableOpacity>
         </View>
+
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
     backgroundColor: '#FFFFFF',
   },
 
   content: {
     flex: 1,
+    paddingHorizontal: 25,
+    paddingTop: 15,
+  },
+
+  backButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: 10,
+  },
+
+  backText: {
+    fontSize: 17,
+    color: '#333333',
+  },
+
+  logoContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 30,
+    marginTop: 70,
+  },
+
+  logo: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#244C3B',
+  },
+
+  welcomeContainer: {
+    alignItems: 'center',
+    marginTop: 100,
+  },
+
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#244C3B',
+    marginBottom: 15,
   },
 
   description: {
-    color: '#555555',
-    fontSize: 10,
-    lineHeight: 15,
+    fontSize: 16,
+    color: '#777777',
     textAlign: 'center',
-    maxWidth: 300,
-    marginTop: 60,
+    lineHeight: 24,
   },
 
   buttons: {
-    width: '100%',
-    maxWidth: 330,
+    marginTop: 80,
+    gap: 15,
   },
 
   loginButton: {
-    width: '100%',
-    height: 44,
-    backgroundColor: '#2860F5',
-    borderRadius: 25,
-    justifyContent: 'center',
+    backgroundColor: '#244C3B',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 8,
   },
 
   loginText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: 'bold',
   },
 
-  signUpButton: {
-    width: '100%',
-    height: 44,
-    backgroundColor: '#CFD7FF',
-    borderRadius: 25,
-    justifyContent: 'center',
+  signupButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#244C3B',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
   },
 
-  signUpText: {
-    color: '#2860F5',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  pressed: {
-    opacity: 0.7,
+  signupText: {
+    color: '#244C3B',
+    fontSize: 17,
+    fontWeight: 'bold',
   },
 });
