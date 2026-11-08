@@ -7,6 +7,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 
+import SkinFirtsLogo from './SkinFirtsLogo';
+
 type Props = {
   onLogin: () => void;
   onSignUp: () => void;
@@ -19,42 +21,55 @@ export default function WelcomeScreen({
   onBack,
 }: Props) {
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+    <SafeAreaView style={styles.screen}>
+      <View style={styles.container}>
 
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={onBack}
-        >
-          <Text style={styles.backText}>← Back</Text>
-        </TouchableOpacity>
-
+        {/* Logo */}
         <View style={styles.logoContainer}>
-          <Text style={styles.logo}>SkinFirst</Text>
-        </View>
+          <SkinFirtsLogo />
 
-        <View style={styles.welcomeContainer}>
-          <Text style={styles.title}>Welcome!</Text>
+          <Text style={styles.logoText}>
+            Skin
+            {'\n'}
+            Firts
+          </Text>
 
-          <Text style={styles.description}>
-            Your skin care journey starts here.
-            Take care of your skin with us.
+          <Text style={styles.subtitle}>
+            Dermatology Center
           </Text>
         </View>
 
-        <View style={styles.buttons}>
+        {/* Description */}
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.description}>
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+            {'\n'}
+            sed do eiusmod tempor incididunt ut labore et dolore
+            {'\n'}
+            magna aliqua.
+          </Text>
+        </View>
+
+        {/* Log In and Sign Up */}
+        <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={styles.loginButton}
             onPress={onLogin}
+            activeOpacity={0.8}
           >
-            <Text style={styles.loginText}>Log In</Text>
+            <Text style={styles.loginText}>
+              Log In
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.signupButton}
             onPress={onSignUp}
+            activeOpacity={0.8}
           >
-            <Text style={styles.signupText}>Sign Up</Text>
+            <Text style={styles.signupText}>
+              Sign Up
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -64,87 +79,91 @@ export default function WelcomeScreen({
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
 
-  content: {
+  container: {
     flex: 1,
-    paddingHorizontal: 25,
-    paddingTop: 15,
-  },
-
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 10,
-  },
-
-  backText: {
-    fontSize: 17,
-    color: '#333333',
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
   },
 
   logoContainer: {
+    position: 'absolute',
+    top: '28%',
     alignItems: 'center',
-    marginTop: 70,
+    width: '100%',
   },
 
-  logo: {
-    fontSize: 32,
+  logoText: {
+    color: '#2860FF',
+    fontSize: 52,
+    fontWeight: '300',
+    textAlign: 'center',
+    lineHeight: 48,
+    letterSpacing: -2,
+    marginTop: 5,
+  },
+
+  subtitle: {
+    color: '#2860FF',
+    fontSize: 13,
     fontWeight: 'bold',
-    color: '#244C3B',
+    marginTop: 18,
   },
 
-  welcomeContainer: {
+  descriptionContainer: {
+    position: 'absolute',
+    bottom: '25%',
+    width: '90%',
     alignItems: 'center',
-    marginTop: 100,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#244C3B',
-    marginBottom: 15,
   },
 
   description: {
-    fontSize: 16,
-    color: '#777777',
+    color: '#222222',
+    fontSize: 12,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 14,
   },
 
-  buttons: {
-    marginTop: 80,
-    gap: 15,
+  buttonsContainer: {
+    position: 'absolute',
+    bottom: '9%',
+    width: '58%',
+    alignItems: 'center',
   },
 
   loginButton: {
-    backgroundColor: '#244C3B',
-    paddingVertical: 16,
-    borderRadius: 12,
+    width: '100%',
+    height: 55,
+    backgroundColor: '#2860FF',
+    borderRadius: 30,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 9,
   },
 
   loginText: {
     color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: 'bold',
+    fontSize: 26,
+    fontWeight: '500',
   },
 
   signupButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#244C3B',
-    paddingVertical: 16,
-    borderRadius: 12,
+    width: '100%',
+    height: 55,
+    backgroundColor: '#CCD7FF',
+    borderRadius: 30,
     alignItems: 'center',
+    justifyContent: 'center',
   },
 
   signupText: {
-    color: '#244C3B',
-    fontSize: 17,
-    fontWeight: 'bold',
+    color: '#2860FF',
+    fontSize: 26,
+    fontWeight: '500',
   },
 });
