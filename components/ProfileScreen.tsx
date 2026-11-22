@@ -1,470 +1,630 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useState } from "react";
+import {
+  Alert,
+  Image,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+
+export type ProfileSectionKey =
+  | "editProfile"
+  | "favorite"
+  | "payment"
+  | "privacy"
+  | "settings"
+  | "help";
 
 interface ProfileScreenProps {
-  onLogout: () => void;
+  userName?: string;
+  avatarUri?: string;
+  onChangeAvatar?: (newUri: string) => void;
+  onChangeUserName?: (newName: string) => void;
+  onSelectSection?: (section: ProfileSectionKey) => void;
+  onOpenLogout?: () => void;
+  onBackToHome: () => void;
+  onOpenChat: () => void;
+  onLogout?: () => void;
 }
 
-export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
-  const [isEditing, setIsEditing] = useState(false);
+const DEFAULT_AVATAR =
+  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80";
 
-  // Форма өрістері
-  const [fullName, setFullName] = useState('John Doe');
-  const [phoneNumber, setPhoneNumber] = useState('+123 567 89000');
-  const [email, setEmail] = useState('johndoe@example.com');
-  const [dob, setDob] = useState('DD / MM / YYYY');
+const PRESET_AVATARS = [
+  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+];
+
+export default function ProfileScreen({
+  userName = "John Doe",
+  avatarUri = DEFAULT_AVATAR,
+  onChangeAvatar,
+  onChangeUserName,
+  onSelectSection,
+  onOpenLogout,
+  onBackToHome,
+  onOpenChat,
+  onLogout,
+}: ProfileScreenProps) {
+  const [localAvatar, setLocalAvatar] = useState<string>(avatarUri);
+  const [localName, setLocalName] = useState<string>(userName);
+  const [photoModalVisible, setPhotoModalVisible] = useState<boolean>(false);
+  const [customUrlInput, setCustomUrlInput] = useState<string>("");
+  const [editProfileModalVisible, setEditProfileModalVisible] =
+    useState<boolean>(false);
+  const [draftName, setDraftName] = useState<string>(userName);
+
+  const currentAvatar = avatarUri || localAvatar || DEFAULT_AVATAR;
+  const currentName = userName || localName || "John Doe";
+
+  const applyNewAvatar = (uri: string) => {
+    const cleanUri = uri.trim();
+    if (!cleanUri) return;
+    setLocalAvatar(cleanUri);
+    if (onChangeAvatar) {
+      onChangeAvatar(cleanUri);
+    }
+    setPhotoModalVisible(false);
+    setCustomUrlInput("");
+  };
+
+  const handlePickFromGallery = async () => {
+    try {
+      const ImagePicker = await import("expo-image-picker");
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Рұқсат қажет",
+          "Галереядан сурет таңдау үшін фотоларға рұқсат беріңіз."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        applyNewAvatar(result.assets[0].uri);
+      }
+    } catch {
+      Alert.alert(
+        "Галерея модулі",
+        "Галереяны ашу үшін 'npx expo install expo-image-picker' орнатыңыз немесе төмендегі дайын/URL фотоны таңдаңыз."
+      );
+    }
+  };
+
+  const handleSaveName = () => {
+    const trimmed = draftName.trim();
+    if (!trimmed) return;
+    setLocalName(trimmed);
+    if (onChangeUserName) {
+      onChangeUserName(trimmed);
+    }
+    setEditProfileModalVisible(false);
+  };
+
+  const handleLogoutPress = () => {
+    if (onOpenLogout) {
+      onOpenLogout();
+      return;
+    }
+
+    Alert.alert("Logout", "Аккаунттан шыққыңыз келе ме?", [
+      { text: "Болдырмау", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: () => {
+          if (onLogout) onLogout();
+        },
+      },
+    ]);
+  };
+
+  const openSection = (section: ProfileSectionKey) => {
+    if (onSelectSection) {
+      onSelectSection(section);
+    } else if (section === "editProfile") {
+      setDraftName(currentName);
+      setEditProfileModalVisible(true);
+    }
+  };
+
+  const menuItems: {
+    key: string;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    hasArrow: boolean;
+    onPress: () => void;
+  }[] = [
+    {
+      key: "profile",
+      label: "Profile",
+      icon: "person-outline",
+      hasArrow: true,
+      onPress: () => openSection("editProfile"),
+    },
+    {
+      key: "favorite",
+      label: "Favorite",
+      icon: "heart-outline",
+      hasArrow: true,
+      onPress: () => openSection("favorite"),
+    },
+    {
+      key: "payment",
+      label: "Payment Method",
+      icon: "wallet-outline",
+      hasArrow: true,
+      onPress: () => openSection("payment"),
+    },
+    {
+      key: "privacy",
+      label: "Privacy Policy",
+      icon: "lock-closed-outline",
+      hasArrow: true,
+      onPress: () => openSection("privacy"),
+    },
+    {
+      key: "settings",
+      label: "Settings",
+      icon: "settings-outline",
+      hasArrow: true,
+      onPress: () => openSection("settings"),
+    },
+    {
+      key: "help",
+      label: "Help",
+      icon: "help",
+      hasArrow: true,
+      onPress: () => openSection("help"),
+    },
+    {
+      key: "logout",
+      label: "Logout",
+      icon: "log-out-outline",
+      hasArrow: false,
+      onPress: handleLogoutPress,
+    },
+  ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* Жоғарғы тақырып */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => isEditing ? setIsEditing(false) : null}>
-            <Text style={styles.backArrow}>{'<'}</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            {isEditing ? 'Edit Profile' : 'My Profile'}
-          </Text>
-          <View style={{ width: 24 }} /> 
-        </View>
-
-        {/* Профиль суреті (Мұнда суретті өзіңізге қарай ауыстыра аласыз) */}
-        <View style={styles.profileImageContainer}>
-          <Image 
-            // Жергілікті сурет үшін: source={require('../assets/your-image.png')}
-            source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500' }} 
-            style={styles.profileImage} 
-          />
-          <TouchableOpacity 
-            style={styles.editBadge} 
-            onPress={() => setIsEditing(!isEditing)}
-          >
-            <Text style={styles.editBadgeText}>✎</Text>
-          </TouchableOpacity>
-        </View>
-
-        {!isEditing ? (
-          /* --- СОЛ ЖАҚ БЕТ (My Profile - Меню тізімі) --- */
-          <View>
-            <Text style={styles.userName}>{fullName}</Text>
-
-            <View style={styles.menuList}>
-              
-              <TouchableOpacity style={styles.menuItem} onPress={() => setIsEditing(true)}>
-                <View style={styles.menuLeft}>
-                  <View style={styles.iconBox}>
-                    <View style={styles.profileHeadDot} />
-                    <View style={styles.profileBodyArc} />
-                  </View>
-                  <Text style={styles.menuText}>Profile</Text>
-                </View>
-                <Text style={styles.arrow}>{'>'}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuLeft}>
-                  <View style={styles.iconBox}>
-                    <View style={styles.heartShape} />
-                  </View>
-                  <Text style={styles.menuText}>Favorite</Text>
-                </View>
-                <Text style={styles.arrow}>{'>'}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuLeft}>
-                  <View style={styles.iconBox}>
-                    <View style={styles.walletCard} />
-                  </View>
-                  <Text style={styles.menuText}>Payment Method</Text>
-                </View>
-                <Text style={styles.arrow}>{'>'}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuLeft}>
-                  <View style={styles.iconBox}>
-                    <View style={styles.lockBody} />
-                  </View>
-                  <Text style={styles.menuText}>Privacy Policy</Text>
-                </View>
-                <Text style={styles.arrow}>{'>'}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuLeft}>
-                  <View style={styles.iconBox}>
-                    <View style={styles.gearCenter} />
-                  </View>
-                  <Text style={styles.menuText}>Settings</Text>
-                </View>
-                <Text style={styles.arrow}>{'>'}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem}>
-                <View style={styles.menuLeft}>
-                  <View style={styles.iconBox}>
-                    <Text style={styles.questionMark}>?</Text>
-                  </View>
-                  <Text style={styles.menuText}>Help</Text>
-                </View>
-                <Text style={styles.arrow}>{'>'}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.menuItem} onPress={onLogout}>
-                <View style={styles.menuLeft}>
-                  <View style={[styles.iconBox, { borderColor: '#ff4d4d' }]}>
-                    <View style={styles.logoutArrowLine} />
-                  </View>
-                  <Text style={[styles.menuText, { color: '#ff4d4d' }]}>Logout</Text>
-                </View>
-                <Text style={styles.arrow}>{'>'}</Text>
-              </TouchableOpacity>
-
-            </View>
-          </View>
-        ) : (
-          /* --- ОҢ ЖАҚ БЕТ (Edit Profile - Өңдеу формасы) --- */
-          <View style={styles.formContainer}>
-            
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name</Text>
-              <TextInput 
-                style={styles.input} 
-                value={fullName} 
-                onChangeText={setFullName} 
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number</Text>
-              <TextInput 
-                style={styles.input} 
-                value={phoneNumber} 
-                onChangeText={setPhoneNumber} 
-                keyboardType="phone-pad"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput 
-                style={styles.input} 
-                value={email} 
-                onChangeText={setEmail} 
-                keyboardType="email-address"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date Of Birth</Text>
-              <TextInput 
-                style={styles.input} 
-                value={dob} 
-                onChangeText={setDob} 
-              />
-            </View>
-
-            <TouchableOpacity 
-              style={styles.updateButton} 
-              onPress={() => {
-                alert('Profile updated successfully!');
-                setIsEditing(false);
-              }}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.topHeader}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={onBackToHome}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.updateButtonText}>Update Profile</Text>
+              <Ionicons name="chevron-back" size={24} color="#2563EB" />
             </TouchableOpacity>
 
+            <Text style={styles.screenTitle}>My Profile</Text>
+
+            <View style={styles.headerRightSpacer} />
           </View>
-        )}
 
-      </ScrollView>
+          <View style={styles.avatarSection}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => setPhotoModalVisible(true)}
+              style={styles.avatarWrapper}
+            >
+              <Image
+                source={{ uri: currentAvatar }}
+                style={styles.avatarImage}
+              />
+              <TouchableOpacity
+                style={styles.editBadgeBtn}
+                onPress={() => setPhotoModalVisible(true)}
+              >
+                <Ionicons name="pencil" size={14} color="#FFFFFF" />
+              </TouchableOpacity>
+            </TouchableOpacity>
 
-      {/* Төменгі навигация панелі (Суреттегідей дұрыс пішіндермен) */}
-      <View style={styles.bottomNav}>
-        
-        {/* 1. Басты бет (Үйшік пішіні) */}
-        <TouchableOpacity style={styles.navItem}>
-          <View style={styles.homeRoof} />
-          <View style={styles.homeBody} />
-        </TouchableOpacity>
+            <Text style={styles.profileName}>{currentName}</Text>
+          </View>
 
-        {/* 2. Чат (Хабарлама көпіршігі) */}
-        <TouchableOpacity style={styles.navItem}>
-          <View style={styles.chatBubble} />
-        </TouchableOpacity>
+          <View style={styles.menuList}>
+            {menuItems.map((item) => (
+              <TouchableOpacity
+                key={item.key}
+                activeOpacity={0.75}
+                style={styles.menuRow}
+                onPress={item.onPress}
+              >
+                <View style={styles.menuLeft}>
+                  <View style={styles.menuIconCircle}>
+                    <Ionicons name={item.icon} size={20} color="#2563EB" />
+                  </View>
+                  <Text style={styles.menuLabel}>{item.label}</Text>
+                </View>
 
-        {/* 3. Профиль (Адам нобайы - белсенді) */}
-        <TouchableOpacity style={styles.navItem}>
-          <View style={styles.userHead} />
-          <View style={styles.userBody} />
-        </TouchableOpacity>
+                {item.hasArrow && (
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color="#CBD5E1"
+                  />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
 
-        {/* 4. Күнтізбе (Календарь) */}
-        <TouchableOpacity style={styles.navItem}>
-          <View style={styles.calendarTopBar} />
-          <View style={styles.calendarBody} />
-        </TouchableOpacity>
+        <Modal
+          visible={photoModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setPhotoModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalTopRow}>
+                <Text style={styles.modalTitle}>Профиль фотосын өзгерту</Text>
+                <TouchableOpacity
+                  onPress={() => setPhotoModalVisible(false)}
+                  style={styles.modalCloseBtn}
+                >
+                  <Ionicons name="close" size={20} color="#0F172A" />
+                </TouchableOpacity>
+              </View>
 
+              <TouchableOpacity
+                style={styles.galleryButton}
+                onPress={handlePickFromGallery}
+              >
+                <Ionicons name="images-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.galleryButtonText}>
+                  Галереядан сурет таңдау
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.modalSectionLabel}>Дайын фотолар:</Text>
+              <View style={styles.presetsRow}>
+                {PRESET_AVATARS.map((url, idx) => (
+                  <TouchableOpacity
+                    key={url}
+                    onPress={() => applyNewAvatar(url)}
+                    style={[
+                      styles.presetItem,
+                      currentAvatar === url && styles.presetItemActive,
+                    ]}
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={styles.presetImage}
+                    />
+                    <Text style={styles.presetLabel}>#{idx + 1}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.modalSectionLabel}>
+                Немесе сурет сілтемесін (URL) қойыңыз:
+              </Text>
+              <View style={styles.urlRow}>
+                <TextInput
+                  value={customUrlInput}
+                  onChangeText={setCustomUrlInput}
+                  placeholder="https://..."
+                  placeholderTextColor="#94A3B8"
+                  style={styles.urlInput}
+                />
+                <TouchableOpacity
+                  style={styles.applyUrlBtn}
+                  onPress={() => applyNewAvatar(customUrlInput)}
+                >
+                  <Text style={styles.applyUrlText}>Сақтау</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={editProfileModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setEditProfileModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalTopRow}>
+                <Text style={styles.modalTitle}>Профиль мәліметтері</Text>
+                <TouchableOpacity
+                  onPress={() => setEditProfileModalVisible(false)}
+                  style={styles.modalCloseBtn}
+                >
+                  <Ionicons name="close" size={20} color="#0F172A" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.modalSectionLabel}>Аты-жөніңіз:</Text>
+              <TextInput
+                value={draftName}
+                onChangeText={setDraftName}
+                placeholder="Аты-жөніңізді енгізіңіз"
+                placeholderTextColor="#94A3B8"
+                style={styles.nameInput}
+              />
+
+              <TouchableOpacity
+                style={styles.galleryButton}
+                onPress={handleSaveName}
+              >
+                <Text style={styles.galleryButtonText}>Өзгерісті сақтау</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        <View style={styles.bottomNavContainer}>
+          <View style={styles.bottomNavBar}>
+            <TouchableOpacity onPress={onBackToHome}>
+              <Ionicons name="home-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onOpenChat}>
+              <Ionicons name="chatbubbles-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => {}}>
+              <Ionicons name="person" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                Alert.alert(
+                  "Күнтізбе",
+                  "Қабылдау күндерін басты беттен көре аласыз."
+                )
+              }
+            >
+              <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 10,
-    paddingBottom: 100,
+    paddingBottom: 105,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
+  topHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 12,
   },
-  backArrow: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0055FF',
+  backButton: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  headerTitle: {
+  screenTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#0055FF',
+    fontWeight: "700",
+    color: "#2563EB",
   },
-  profileImageContainer: {
-    alignItems: 'center',
-    position: 'relative',
-    marginBottom: 10,
+  headerRightSpacer: {
+    width: 34,
   },
-  profileImage: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+  avatarSection: {
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 22,
   },
-  editBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: '38%',
-    backgroundColor: '#0055FF',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
+  avatarWrapper: {
+    position: "relative",
+    width: 106,
+    height: 106,
+    borderRadius: 53,
   },
-  editBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
+  avatarImage: {
+    width: 106,
+    height: 106,
+    borderRadius: 53,
   },
-  userName: {
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 20,
+  editBadgeBtn: {
+    position: "absolute",
+    right: 2,
+    bottom: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#2563EB",
+    borderWidth: 2.5,
+    borderColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileName: {
+    marginTop: 12,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0F172A",
   },
   menuList: {
-    marginTop: 5,
+    paddingHorizontal: 22,
+    gap: 14,
   },
-  menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F2',
-    alignItems: 'center',
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 4,
   },
   menuLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
   },
-  iconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#F0F4FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-    borderWidth: 1,
-    borderColor: '#E2ECFF',
+  menuIconCircle: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#DCE6FF",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  profileHeadDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#0055FF',
-    marginBottom: 2,
-  },
-  profileBodyArc: {
-    width: 14,
-    height: 6,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    backgroundColor: '#0055FF',
-  },
-  heartShape: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#0055FF',
-    transform: [{ rotate: '45deg' }],
-  },
-  walletCard: {
-    width: 16,
-    height: 11,
-    borderRadius: 2,
-    borderWidth: 1.5,
-    borderColor: '#0055FF',
-  },
-  lockBody: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-    borderWidth: 1.5,
-    borderColor: '#0055FF',
-  },
-  gearCenter: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#0055FF',
-  },
-  questionMark: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0055FF',
-  },
-  logoutArrowLine: {
-    width: 10,
-    height: 2,
-    backgroundColor: '#ff4d4d',
-  },
-  menuText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
-  },
-  arrow: {
-    fontSize: 16,
-    color: '#C4C4C4',
-  },
-  formContainer: {
-    marginTop: 10,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111',
-    marginBottom: 6,
-  },
-  input: {
-    backgroundColor: '#F0F4FF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  menuLabel: {
     fontSize: 15,
-    color: '#333',
+    fontWeight: "500",
+    color: "#0F172A",
   },
-  updateButton: {
-    backgroundColor: '#1852FF',
-    borderRadius: 25,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 20,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "flex-end",
   },
-  updateButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  // Төменгі навигация панелінің стилі
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#1852FF',
-    paddingVertical: 16,
+  modalCard: {
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    padding: 20,
   },
-  navItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 40,
-    height: 30,
+  modalTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 14,
   },
-  // 1. Үйшік (Home) пішіні
-  homeRoof: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 10,
-    borderLeftColor: 'transparent',
-    borderRightWidth: 10,
-    borderRightColor: 'transparent',
-    borderBottomWidth: 8,
-    borderBottomColor: '#A0C0FF',
-    marginBottom: 1,
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
   },
-  homeBody: {
-    width: 14,
-    height: 10,
-    backgroundColor: '#A0C0FF',
-    borderBottomLeftRadius: 2,
-    borderBottomRightRadius: 2,
+  modalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  // 2. Чат (Chat) пішіні
-  chatBubble: {
-    width: 18,
-    height: 14,
-    backgroundColor: '#A0C0FF',
-    borderRadius: 4,
+  galleryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2563EB",
+    borderRadius: 16,
+    paddingVertical: 12,
+    gap: 8,
+    marginBottom: 14,
   },
-  // 3. Профиль (User) пішіні (Белсенді акцент - ақ түсті)
-  userHead: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#fff',
-    marginBottom: 2,
+  galleryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
   },
-  userBody: {
-    width: 16,
-    height: 8,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    backgroundColor: '#fff',
+  modalSectionLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+    marginBottom: 8,
   },
-  // 4. Күнтізбе (Calendar) пішіні
-  calendarTopBar: {
-    width: 16,
-    height: 3,
-    backgroundColor: '#A0C0FF',
-    borderTopLeftRadius: 2,
-    borderTopRightRadius: 2,
+  presetsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 14,
   },
-  calendarBody: {
-    width: 16,
-    height: 13,
-    backgroundColor: '#A0C0FF',
-    borderRadius: 2,
-    marginTop: 1,
+  presetItem: {
+    alignItems: "center",
+    padding: 4,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  presetItemActive: {
+    borderColor: "#2563EB",
+  },
+  presetImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  presetLabel: {
+    fontSize: 11,
+    color: "#475569",
+    marginTop: 4,
+  },
+  urlRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  urlInput: {
+    flex: 1,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: "#0F172A",
+  },
+  applyUrlBtn: {
+    backgroundColor: "#2563EB",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+  },
+  applyUrlText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  nameInput: {
+    backgroundColor: "#F1F5F9",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#0F172A",
+    marginBottom: 14,
+  },
+  bottomNavContainer: {
+    position: "absolute",
+    left: 22,
+    right: 22,
+    bottom: 18,
+  },
+  bottomNavBar: {
+    backgroundColor: "#2563EB",
+    borderRadius: 28,
+    height: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
   },
 });

@@ -1,169 +1,111 @@
-import React from 'react';
+
+import React from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
-} from 'react-native';
+  StatusBar,
+  TouchableOpacity,
+} from "react-native";
 
-import SkinFirtsLogo from './SkinFirtsLogo';
+import SkinFirtsLogo from "./SkinFirtsLogo";
 
 type Props = {
+  onBack: () => void;
   onLogin: () => void;
   onSignUp: () => void;
-  onBack: () => void;
 };
 
 export default function WelcomeScreen({
+  onBack,
   onLogin,
   onSignUp,
-  onBack,
 }: Props) {
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar hidden />
 
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <SkinFirtsLogo />
-
-          <Text style={styles.logoText}>
-            Skin
-            {'\n'}
-            Firts
-          </Text>
-
-          <Text style={styles.subtitle}>
-            Dermatology Center
-          </Text>
-        </View>
-
-        {/* Description */}
-        <View style={styles.descriptionContainer}>
-          <Text style={styles.description}>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit,
-            {'\n'}
-            sed do eiusmod tempor incididunt ut labore et dolore
-            {'\n'}
-            magna aliqua.
-          </Text>
-        </View>
-
-        {/* Log In and Sign Up */}
-        <View style={styles.buttonsContainer}>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={onLogin}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.loginText}>
-              Log In
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.signupButton}
-            onPress={onSignUp}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.signupText}>
-              Sign Up
-            </Text>
-          </TouchableOpacity>
-        </View>
-
+      <View style={styles.logo}>
+        <SkinFirtsLogo
+          crossColor="#2860F5"
+          leafColor="#FFFFFF"
+          textColor="#2860F5"
+          size={120}
+        />
       </View>
-    </SafeAreaView>
+
+      <Text style={styles.description}>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+        {"\n"}sed do eiusmod tempor incididunt ut labore et dolore
+        {"\n"}magna aliqua.
+      </Text>
+
+      <TouchableOpacity
+        style={styles.loginButton}
+        onPress={onLogin}
+      >
+        <Text style={styles.loginText}>Log In</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.signupButton}
+        onPress={onSignUp}
+      >
+        <Text style={styles.signupText}>Sign Up</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-
   container: {
     flex: 1,
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  logoContainer: {
-    position: 'absolute',
-    top: '28%',
-    alignItems: 'center',
-    width: '100%',
-  },
-
-  logoText: {
-    color: '#2860FF',
-    fontSize: 52,
-    fontWeight: '300',
-    textAlign: 'center',
-    lineHeight: 48,
-    letterSpacing: -2,
-    marginTop: 5,
-  },
-
-  subtitle: {
-    color: '#2860FF',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginTop: 18,
-  },
-
-  descriptionContainer: {
-    position: 'absolute',
-    bottom: '25%',
-    width: '90%',
-    alignItems: 'center',
+  logo: {
+    marginTop: -40,
   },
 
   description: {
-    color: '#222222',
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-
-  buttonsContainer: {
-    position: 'absolute',
-    bottom: '9%',
-    width: '58%',
-    alignItems: 'center',
+    marginTop: 65,
+    fontSize: 11,
+    color: "#333333",
+    textAlign: "center",
+    lineHeight: 13,
   },
 
   loginButton: {
-    width: '100%',
-    height: 55,
-    backgroundColor: '#2860FF',
+    width: "58%",
+    height: 49,
+    backgroundColor: "#2860FF",
     borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 9,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 37,
   },
 
   loginText: {
-    color: '#FFFFFF',
-    fontSize: 26,
-    fontWeight: '500',
+    color: "#FFFFFF",
+    fontSize: 23,
+    fontWeight: "600",
   },
 
   signupButton: {
-    width: '100%',
-    height: 55,
-    backgroundColor: '#CCD7FF',
+    width: "58%",
+    height: 49,
+    backgroundColor: "#CCD7FF",
     borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 8,
   },
 
   signupText: {
-    color: '#2860FF',
-    fontSize: 26,
-    fontWeight: '500',
+    color: "#2860FF",
+    fontSize: 23,
+    fontWeight: "600",
   },
 });

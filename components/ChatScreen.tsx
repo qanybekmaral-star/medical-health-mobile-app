@@ -1,94 +1,250 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, Image, TextInput, TouchableOpacity, ScrollView, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useMemo, useState } from "react";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import type { Doctor } from "./DashboardScreen";
 
-interface Doctor {
+export interface ChatMessage {
   id: string;
-  name: string;
-  specialty: string;
-  image: string;
-}
-
-interface Message {
-  id: string;
+  sender: "user" | "doctor";
   text: string;
-  sender: 'user' | 'doctor';
+  time: string;
 }
 
 interface ChatScreenProps {
-  doctor: Doctor;
-  onBack: () => void;
+  doctors: Doctor[];
+  userName?: string;
+  initialDoctorId?: string | null;
+  onBackToHome: () => void;
 }
 
-export default function ChatScreen({ doctor, onBack }: ChatScreenProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: `Сәлеметсіз бе! Мен ${doctor.name}. Сізге қалай көмектесе аламын?`, sender: 'doctor' }
-  ]);
-  const [inputText, setInputText] = useState('');
+function getCurrentTimeLabel(): string {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
 
-  const sendMessage = () => {
-    if (inputText.trim() === '') return;
+export default function ChatScreen({
+  doctors,
+  userName = "John Doe",
+  initialDoctorId = null,
+  onBackToHome,
+}: ChatScreenProps) {
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string | null>(
+    initialDoctorId
+  );
+  const [draftText, setDraftText] = useState<string>("");
 
-    const newMsg: Message = { id: Date.now().toString(), text: inputText, sender: 'user' };
-    setMessages(prev => [...prev, newMsg]);
-    setInputText('');
+  const [messagesByDoctor, setMessagesByDoctor] = useState<
+    Record<string, ChatMessage[]>
+  >(() => {
+    const initialMap: Record<string, ChatMessage[]> = {};
+    doctors.forEach((doc, index) => {
+      initialMap[doc.id] = [
+        {
+          id: `welcome-${doc.id}`,
+          sender: "doctor",
+          text: `Сәлеметсіз бе, ${userName}! Мен ${doc.name} (${doc.specialty}). Қандай сұрағыңыз немесе мазалап жүрген белгілер бар?`,
+          time: index === 0 ? "09:45" : "10:15",
+        },
+      ];
+    });
+    return initialMap;
+  });
 
-    // Дәрігердің автоматты жауабы (имитация)
-    setTimeout(() => {
-      const replyMsg: Message = { 
-        id: (Date.now() + 1).toString(), 
-        text: 'Түсінікті, сіздің сұрағыңызды қарастырамын. Қосымша сұрақтарыңыз бар ма?', 
-        sender: 'doctor' 
-      };
-      setMessages(prev => [...prev, replyMsg]);
-    }, 1000);
+  const activeDoctor = useMemo(
+    () => doctors.find((d) => d.id === selectedDoctorId) || null,
+    [doctors, selectedDoctorId]
+  );
+
+  const currentMessages = useMemo(() => {
+    if (!selectedDoctorId) return [];
+    const existing = messagesByDoctor[selectedDoctorId];
+    if (existing && existing.length > 0) return existing;
+
+    const doc = doctors.find((d) => d.id === selectedDoctorId);
+    return doc
+      ? [
+          {
+            id: `init-${doc.id}`,
+            sender: "doctor" as const,
+            text: `Сәлеметсіз бе, ${userName}! Мен ${doc.name}. Тыңдап тұрмын.`,
+            time: getCurrentTimeLabel(),
+          },
+        ]
+      : [];
+  }, [selectedDoctorId, messagesByDoctor, doctors, userName]);
+
+  const handleSendMessage = () => {
+    const trimmed = draftText.trim();
+    if (!trimmed || !selectedDoctorId) return;
+
+    const nowLabel = getCurrentTimeLabel();
+    const userMsg: ChatMessage = {
+      id: `u-${Date.now()}`,
+      sender: "user",
+      text: trimmed,
+      time: nowLabel,
+    };
+
+    const doc = doctors.find((d) => d.id === selectedDoctorId);
+    const replyMsg: ChatMessage = {
+      id: `d-${Date.now() + 1}`,
+      sender: "doctor",
+      text: `Хабарламаңызды алдым (${doc?.specialty || "кеңес"}). Толығырақ сипаттап берсеңіз, қабылдауға дайындала аламыз.`,
+      time: nowLabel,
+    };
+
+    setMessagesByDoctor((prev) => ({
+      ...prev,
+      [selectedDoctorId]: [...(prev[selectedDoctorId] || []), userMsg, replyMsg],
+    }));
+    setDraftText("");
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Жоғарғы панель */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack}>
-          <Text style={styles.backButton}>{'<'}</Text>
-        </TouchableOpacity>
-        <Image source={{ uri: doctor.image }} style={styles.headerAvatar} />
-        <View style={styles.headerInfo}>
-          <Text style={styles.headerName}>{doctor.name}</Text>
-          <Text style={styles.headerSpec}>{doctor.specialty}</Text>
-        </View>
-      </View>
-
-      {/* Хабарламалар аймағы */}
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={styles.chatScroll}>
-          {messages.map((msg) => (
-            <View 
-              key={msg.id} 
-              style={[
-                styles.messageBubble, 
-                msg.sender === 'user' ? styles.userBubble : styles.doctorBubble
-              ]}
-            >
-              <Text style={msg.sender === 'user' ? styles.userText : styles.doctorText}>
-                {msg.text}
+  if (!activeDoctor) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <View style={styles.listHeader}>
+            <TouchableOpacity style={styles.iconCircleBtn} onPress={onBackToHome}>
+              <Ionicons name="arrow-back" size={20} color="#0F172A" />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitle}>Хабарламалар</Text>
+              <Text style={styles.headerSubtitle}>
+                Дәрігерді таңдап, жеке чат бастаңыз
               </Text>
             </View>
-          ))}
+            <View style={styles.placeholderBtn} />
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {doctors.map((doc) => {
+              const thread = messagesByDoctor[doc.id] || [];
+              const lastMsg = thread[thread.length - 1];
+              return (
+                <TouchableOpacity
+                  key={doc.id}
+                  activeOpacity={0.85}
+                  style={styles.threadCard}
+                  onPress={() => setSelectedDoctorId(doc.id)}
+                >
+                  <Image source={{ uri: doc.avatar }} style={styles.threadAvatar} />
+                  <View style={styles.threadInfo}>
+                    <View style={styles.threadTopRow}>
+                      <Text style={styles.threadName} numberOfLines={1}>
+                        {doc.name}
+                      </Text>
+                      <Text style={styles.threadTime}>{lastMsg?.time || "10:00"}</Text>
+                    </View>
+                    <Text style={styles.threadSpecialty} numberOfLines={1}>
+                      {doc.specialty}
+                    </Text>
+                    <Text style={styles.threadPreview} numberOfLines={1}>
+                      {lastMsg?.text || "Чатты ашу үшін басыңыз..."}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#2563EB" />
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <View style={styles.chatHeader}>
+          <TouchableOpacity
+            style={styles.iconCircleBtn}
+            onPress={() => setSelectedDoctorId(null)}
+          >
+            <Ionicons name="arrow-back" size={20} color="#0F172A" />
+          </TouchableOpacity>
+
+          <Image source={{ uri: activeDoctor.avatar }} style={styles.chatHeaderAvatar} />
+
+          <View style={styles.chatHeaderTextWrap}>
+            <Text style={styles.chatHeaderName} numberOfLines={1}>
+              {activeDoctor.name}
+            </Text>
+            <Text style={styles.chatHeaderStatus} numberOfLines={1}>
+              Online • {activeDoctor.specialty}
+            </Text>
+          </View>
+
+          <TouchableOpacity style={styles.iconCircleBtn} onPress={onBackToHome}>
+            <Ionicons name="home-outline" size={18} color="#0F172A" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={styles.messagesScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          {currentMessages.map((msg) => {
+            const isUser = msg.sender === "user";
+            return (
+              <View
+                key={msg.id}
+                style={[
+                  styles.bubble,
+                  isUser ? styles.userBubble : styles.doctorBubble,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.bubbleText,
+                    isUser ? styles.userBubbleText : styles.doctorBubbleText,
+                  ]}
+                >
+                  {msg.text}
+                </Text>
+                <Text
+                  style={[
+                    styles.bubbleTime,
+                    isUser ? styles.userBubbleTime : styles.doctorBubbleTime,
+                  ]}
+                >
+                  {msg.time}
+                </Text>
+              </View>
+            );
+          })}
         </ScrollView>
 
-        {/* Хабарлама жазатын жолақ */}
-        <View style={styles.inputContainer}>
-          <TextInput 
-            style={styles.input}
-            placeholder="Хабарлама жазу..."
-            placeholderTextColor="#888"
-            value={inputText}
-            onChangeText={setInputText}
+        <View style={styles.inputBar}>
+          <TextInput
+            value={draftText}
+            onChangeText={setDraftText}
+            placeholder="Хабарлама жазыңыз..."
+            placeholderTextColor="#94A3B8"
+            style={styles.messageInput}
+            multiline
           />
-          <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-            <Text style={styles.sendButtonText}>➔</Text>
+          <TouchableOpacity style={styles.sendBtn} onPress={handleSendMessage}>
+            <Ionicons name="send" size={18} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -97,21 +253,190 @@ export default function ChatScreen({ doctor, onBack }: ChatScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFF' },
-  header: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 12, borderBottomWidth: 1, borderBottomColor: '#E5EEFF' },
-  backButton: { fontSize: 24, fontWeight: 'bold', color: '#0055FF', marginRight: 15 },
-  headerAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  headerInfo: { flex: 1 },
-  headerName: { fontSize: 15, fontWeight: 'bold', color: '#000' },
-  headerSpec: { fontSize: 12, color: '#0055FF' },
-  chatScroll: { padding: 20 },
-  messageBubble: { maxWidth: '75%', padding: 12, borderRadius: 16, marginBottom: 12 },
-  userBubble: { backgroundColor: '#1852FF', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-  doctorBubble: { backgroundColor: '#fff', alignSelf: 'flex-start', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#E5EEFF' },
-  userText: { color: '#fff', fontSize: 14 },
-  doctorText: { color: '#333', fontSize: 14 },
-  inputContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#E5EEFF', alignItems: 'center' },
-  input: { flex: 1, backgroundColor: '#F0F4FF', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, color: '#333', marginRight: 10 },
-  sendButton: { backgroundColor: '#1852FF', width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  sendButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  listHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  iconCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  placeholderBtn: {
+    width: 36,
+  },
+  headerCenter: {
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  listContent: {
+    padding: 16,
+    gap: 12,
+  },
+  threadCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 12,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  threadAvatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+  },
+  threadInfo: {
+    flex: 1,
+  },
+  threadTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  threadName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+    flex: 1,
+  },
+  threadTime: {
+    fontSize: 11,
+    color: "#2563EB",
+    fontWeight: "600",
+  },
+  threadSpecialty: {
+    fontSize: 12,
+    color: "#2563EB",
+    marginTop: 1,
+  },
+  threadPreview: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 3,
+  },
+  chatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    gap: 10,
+  },
+  chatHeaderAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+  },
+  chatHeaderTextWrap: {
+    flex: 1,
+  },
+  chatHeaderName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  chatHeaderStatus: {
+    fontSize: 11,
+    color: "#16A34A",
+    fontWeight: "500",
+  },
+  messagesScroll: {
+    padding: 16,
+    gap: 10,
+    paddingBottom: 24,
+  },
+  bubble: {
+    maxWidth: "80%",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  userBubble: {
+    alignSelf: "flex-end",
+    backgroundColor: "#2563EB",
+  },
+  doctorBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: "#E0E7FF",
+  },
+  bubbleText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  userBubbleText: {
+    color: "#FFFFFF",
+  },
+  doctorBubbleText: {
+    color: "#0F172A",
+  },
+  bubbleTime: {
+    fontSize: 10,
+    marginTop: 4,
+    alignSelf: "flex-end",
+  },
+  userBubbleTime: {
+    color: "#DBEAFE",
+  },
+  doctorBubbleTime: {
+    color: "#475569",
+  },
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#FFFFFF",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    gap: 8,
+  },
+  messageInput: {
+    flex: 1,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: "#0F172A",
+    maxHeight: 100,
+  },
+  sendBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#2563EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

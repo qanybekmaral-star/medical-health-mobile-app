@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Pressable,
@@ -18,7 +17,7 @@ export default function HomeScreen({ onContinue }: Props) {
       style={styles.container}
       onPress={onContinue}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar hidden />
 
       <SkinFirtsLogo
         crossColor="#FFFFFF"
@@ -33,7 +32,6 @@ export default function HomeScreen({ onContinue }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
     backgroundColor: '#2860F5',
     justifyContent: 'center',
     alignItems: 'center',
